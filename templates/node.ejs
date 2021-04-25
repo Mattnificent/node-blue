@@ -1,0 +1,1822 @@
+<matt-script type="text/x-red" data-template-name="<%= id %>">
+
+    <div id="rows">
+        <div class="form-row">
+            <label  class="config-label" for="node-input-fun"><b>Function</b></label>
+            <select type="text" id="node-input-fun" style="display: inline-block; width: 250px; vertical-align: top;">
+                <% _.forEach(functions, function(fun) { %>
+                    <option value="<%- fun.id %>"><%- fun.name %></option>
+                <% }); %>
+            </select>
+        </div>
+        <div id="function-config" style="display: none">
+
+            <p><br><inputs-label>Inputs</inputs-label></p>
+            <table id="inputs" style="width:100%"/>
+
+
+            <p><br><outputs-label>Outputs</outputs-label></p>
+            <div class="form-row" id="outputs">
+                <input type="text" id="node-input-outputArray" style="display:none">
+                <input type="text" id="node-input-outputSettings" style="display:none">
+                <ol style="cursor:move; list-style: none;" id="output-config-container"></ol>
+            </div>
+
+            <div id="unrouted-errors"/>
+
+            <p><br><error-validation-routes-label>Error Validation Routes</error-validation-routes-label></p>
+            <div id="error-validation-routes-button-region"/>
+            <br>
+            <br>
+            <div id="error-validation-routes"/>
+            <br>
+        </div>
+        <div id="function-config-prompt" style="display: none">
+            <h5 style="color:red;">Please select a function above.</h5>
+        </div>
+
+    </div>
+
+    <style>
+        
+        /*
+         * Main Elements
+         *************************************************/
+
+        input {
+            font-family: monospace;
+        }
+        input.auto-resize {
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: scroll;
+            overflow:hidden;
+        }
+
+        textarea {
+            font-family: monospace;
+            -webkit-box-shadow: none;
+        }
+        textarea.auto-resize {
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: scroll;
+            overflow:hidden;
+        }
+
+        .config-label {
+            font-family: monospace;
+            font-size: 120%;
+        }
+
+        table.fixed {
+            table-layout:fixed;
+        }
+        table.fixed td {
+            overflow: hidden;
+        }
+
+        div.indent {
+            margin-left: 24px;
+        }
+
+        input[type=checkbox] {
+            width:20px;
+            height:20px;
+        }
+
+        .node-config-editor-container-dynamic-vertical-scroll {
+            overflow: auto;
+        }
+        /*************************************************/
+
+
+        /*
+         * Object Editor
+         *************************************************/
+
+        input.type-empty    {   background-color: rgba(255,255,255,0);    width: 48px;        }
+
+        input.type-null     {   background-color: rgba(255,255,255,0);    color: gray;    width: 48px;    border: none;   -webkit-box-shadow: none;   }
+        input.type-boolean  {   background-color: rgba(255,255,255,0);    color: purple;  width: 48px;    border: none;   -webkit-box-shadow: none;   }
+        input.type-number   {   background-color: rgba(255,255,255,0);    color: magenta; width: 48px;    border: none;   -webkit-box-shadow: none;   }
+
+        input.type-string   {   background-color: rgba(255,255,255,0);    color: green;       width: 10px;    font-size: 18px;        border: none;   -webkit-box-shadow: none;   }
+        input.type-array    {   background-color: rgba(255,255,255,0);    color: blue;        width: 10px;    font-size: 18px;        border: none;   -webkit-box-shadow: none;   }
+        input.type-object   {   background-color: rgba(255,255,255,0);    color: saddlebrown; width: 10px;    font-size: 18px;        border: none;   -webkit-box-shadow: none;   }
+        input.type-object   {   background-color: rgba(255,255,255,0);    color: saddlebrown; width: 10px;    font-size: 18px;        border: none;   -webkit-box-shadow: none;   }
+
+        input.type-template {   background-color: rgba(255,255,255,0);    color: darkorange;  width: 10px;    font-size: 18px;        border: none;   -webkit-box-shadow: none;   }
+
+        input.valid-null    {   font-style: italic; }
+        input.valid-false   {   border: solid;      border-color: red;  border-width: thin; }
+        input.valid-true    {   font-weight: bolder }
+
+        /*************************************************/
+
+
+        /*
+         * Section Dviders
+         *************************************************/
+        inputs-label {
+            color: #00cccc;
+            font-variant: small-caps;
+            font-size: 200%;
+            padding-right: calc(100% - 73px);
+            background-image: repeating-linear-gradient(180deg, transparent, transparent 28px, #00cccc 33px);
+        }
+        outputs-label {
+            color: #000099;
+            font-variant: small-caps;
+            font-size: 200%;
+            padding-right: calc(100% - 100px);
+            background-image: repeating-linear-gradient(180deg, transparent, transparent 28px, #000099 33px);
+        }
+        unrouted-errors-label {
+            color: red;
+            font-variant: small-caps;
+            font-size: 200%;
+            padding-right: calc(100% - 215px);
+            background-image: repeating-linear-gradient(180deg, transparent, transparent 28px, red 33px);
+        }
+        error-validation-routes-label {
+            color: #ffa000;
+            font-variant: small-caps;
+            font-size: 200%;
+            padding-right: calc(100% - 298px);
+            background-image: repeating-linear-gradient(180deg, transparent, transparent 28px, #ffa000 33px);
+        }
+
+        black-divider {
+            color: black;
+            font-variant: small-caps;
+            font-size: 140%;
+            background-image: repeating-linear-gradient(180deg, transparent, transparent 21px, black 23px);
+        }
+        /*************************************************/
+
+
+        /*
+         * Output Boxes
+         *************************************************/
+        .output-config {
+            margin: 2px 2px 2px -25px;
+        }
+
+        .output-success {
+            border: 2px solid #00cc00;
+            border-radius: 16px;
+            background-color: #ccffcc;
+        }
+        .output-success-null {
+            border: 2px solid #6fccb6;
+            border-radius: 16px;
+            background-color: #eafff6;
+        }
+        .output-error {
+            border: 2px solid #cc0000;
+            border-radius: 16px;
+            background-color: #ffcccc;
+        }
+        .output-error-validation-route {
+            border: 2px solid #cb9300;
+            border-radius: 16px;
+            background-color: #ffd9b7;
+        }
+        .output-moving {
+            border: 2px dashed #d8a6ee;
+            border-radius: 16px;
+            background-color: #ffeefe;
+        }
+        .output-inactive {
+            border: 2px dashed #bbbbbb;
+            border-radius: 16px;
+            background-color: #f0f0f0;
+        }
+        /*************************************************/
+
+
+        /*
+         * Error Boxes
+         *************************************************/
+        .unrouted-error {
+            border: 2px solid #cc0000;
+            background-color: #ffcccc;
+            margin: 2px;
+        }
+        .error-validation-route {
+            border: 2px solid #cb9300;
+            background-color: #ffd9b7;
+            margin: 2px;
+        }
+        .new-error-validation-route {
+            border: 2px solid #c6bc00;
+            background-color: #ffffb4;
+            margin: 2px;
+        }
+        /*************************************************/
+
+
+        /*
+         * Buttons
+         *************************************************/
+        .add-btn {
+            background-image: linear-gradient(to bottom, #3498db, #2980b9);
+            border-radius: 28px;
+            color: #ffffff;
+            font-size: 16px;
+            padding: 10px 20px 10px 20px;
+            text-decoration: none;
+        }
+        .add-btn:hover {
+            background: #3cb0fd;
+            background-image: linear-gradient(to bottom, #3cb0fd, #3498db);
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .add-btn:active {
+            background: #79c4fd;
+            background-image: linear-gradient(to bottom, #49fbfd, #5faadb);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .save-btn {
+            background-image: linear-gradient(to bottom, #6fdb74, #27b931);
+            border-radius: 28px;
+            color: #ffffff;
+            font-size: 16px;
+            padding: 10px 20px 10px 20px;
+            text-decoration: none;
+        }
+        .save-btn:hover {
+            background: #27fd43;
+            background-image: linear-gradient(to bottom, #c5fdb9, #66db6f);
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .save-btn:active {
+            background: #bdfdc5;
+            background-image: linear-gradient(to bottom, #dcfde5, #00db01);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+
+
+        .raw-btn {
+            background-image: linear-gradient(to bottom, #21ffe2, #00ff00);
+            color: #004300;
+            border-radius: 12px;
+            width: 22px;
+            cursor: pointer;
+            padding: 2px 0px 2px 8px;
+        }
+        .raw-btn:hover {
+            background-image: linear-gradient(to bottom, #b9ffe5, #8eff8e);
+        }
+        .raw-btn:active {
+            background-image: linear-gradient(to bottom, #19d0a7, #00ba00);
+        }
+
+        .remove-btn {
+            background-image: linear-gradient(to bottom, #ff6464, #ff0000);
+            color: white;
+            border-radius: 12px;
+            width: 22px;
+            cursor: pointer;
+            margin: 12px;
+        }
+        .remove-btn:hover {
+            background-image: linear-gradient(to bottom, #ffafaf, #ff6464);
+        }
+        .remove-btn:active {
+            background-image: linear-gradient(to bottom, #ff788c, #db1700);
+        }
+
+        /*************************************************/
+
+    </style>
+
+</matt-script>
+
+<script type="text/javascript">
+
+    var <%= id %>_libraryConfigEndpoint = this.location.origin + '/libraries/<%= id %>', 
+        <%= id %>_libraryConfig = <%= JSON.stringify(functions) %>,
+        <%= id %>_errorValidationRoutesEndpoint = this.location.origin + '/libraries/<%= id %>/errorValidationRoutes',
+        objectTemplateKey = "dDJ95Kdks0kujf84kd9kr484fkIS3",
+        mson2mjson = function(inputString) {
+
+                let i, j,
+                    input                           = inputString.split(''),
+                    inputLength                     = input.length,
+                    objectTemplateReplacementHeader = ('{ "' + objectTemplateKey + '": "'),
+                    output                          = [],
+                    isEscaped                       = false,
+                    isDoubleQuoted                  = false,
+                    isSingleQuoted                  = false,
+                    isObjectTemplate                = false;
+
+                for(i = 0; i < inputLength; i++) {
+
+                    let v = input[i];
+
+                    if(isObjectTemplate) {
+                        for(j = 0; j < inputLength; j++)    if(input[i + j] == '>') break;
+                        if(j == inputLength)                throw "Unclosed object template";
+                        output.push(objectTemplateReplacementHeader + input.splice(i, j).join('').trim() + '" }');
+                        isObjectTemplate = false;
+                    }
+                    else {
+                        if(!(isDoubleQuoted || isSingleQuoted)) {
+                            switch (v) {
+                                case '<':   isObjectTemplate = true;    continue;
+                                case ':':
+                                    let lastChar,
+                                        keyArray = [],
+                                        fullKey;
+                                    while(output.length) {
+                                        lastChar = output.pop();
+                                        if (/,|\{/.test(lastChar))  break;
+                                        keyArray.unshift(lastChar);
+                                    }
+                                    fullKey =  keyArray.join('').trim();
+
+                                    // If it doesn't already have quotes, add them
+                                    if(!/^'|".*'|"$/.test(fullKey))
+                                        output.push(lastChar + '"' + fullKey + '"');
+                                    else
+                                        output.push(lastChar + fullKey);
+                                    break;
+                            }
+                        }
+
+                        output.push(v);
+
+                        if(isEscaped) {
+                            isEscaped = false;
+                        }
+                        else {
+                            switch (v) {
+                                case '\\':  isEscaped = true;                   break;
+                                case '"':   isDoubleQuoted = !isDoubleQuoted;   break;
+                                case "'":   isSingleQuoted = !isSingleQuoted;   break;
+                            }
+                        }
+                    }
+                }
+                return output.join('');
+            },
+        mjson2mson = function(inputString) {
+            return inputString.replace(/\{\s*"dDJ95Kdks0kujf84kd9kr484fkIS3": "(.*?)"\s*\}/g, "< $1 >");
+        },
+        typeAbbrevs = {
+            string:     "[STR]",
+            number:     "[NUM]",
+            integer:    "[INT]",
+            boolean:    "[BOO]",
+            date:       "[DAT]",
+            object:     "[OBJ]",
+            array:      "[ARR]",
+            "null":     "[NUL]",
+            any:        "[ANY]"
+        };
+
+    //
+    // High Priority
+    ///////////////////////////////////////////
+    //
+    // [ ] support new lines, html, quotations, etc (use urlencode)
+    // [ ] when user tries to convert JSON to object, and it fails, just show it as a string, but also highlight the box another color
+    // [ ] Test schema validation
+    // [ ] Suggest keys
+    // [ ] Validate if keys already are taken
+    // [ ] Format templates (Orange text?)
+    //
+    //
+    // Minor Features
+    ///////////////////////////////////////////
+    //
+    // [ ] Make lists collapsable
+    //
+    // Low Priority
+    ///////////////////////////////////////////
+    //
+    // [ ] line up values of key value pair sets
+    // [ ] Pressing delete on list closer should delete the list
+    //
+    // [ ] Make list closers tabbable
+    // [ ] Always highlight all when tabbing to a thing
+
+    // Completed
+    ///////////////////////////////////////////
+    //
+    // [x] Adjustable width value inputs
+    // [x] Remove leading zeros in numbers
+    // [x] Can not see the cursor in the following scenarios:
+    //      [x] first letter in string
+    //      [x] no letters in key
+    // [x] Remove shadows, make the fonts more identical and seamless
+    // [x] Convert from object editor to string
+    // [x] Convert from JS object to object editor
+    // [x] support recursive validation
+    // [x] support recursive initial values
+    //
+
+    function getObjectEditorValue(input, editorParts) {
+
+        let jqInput = $(input),
+            type = getClass(jqInput, 'type'); // $(input).attr('class').match(/type-[a-z]+/ig)[0];
+
+        let result, inputFilter = $("input"), keyFilter = $(".is-key");
+
+        switch (type) {
+            case 'string':
+                result = $(editorParts[0]).val();
+                break;
+            case 'template':
+                result = {};
+                result[objectTemplateKey] = $(editorParts[0]).val();
+                break;
+            case 'number':
+                result = parseInt(jqInput.val());
+                break;
+            case 'null':
+            case 'empty':
+                result = null;
+                break;
+            case 'boolean':
+                result = jqInput.val().match(/t/ig) ? true : false;
+                break;
+
+            case 'array':
+
+                let arrayElements = $(editorParts[0]).children().filter(inputFilter);
+
+                result = [];
+
+                arrayElements.each(function(i, objectEditor) {
+
+                    let inputElement    = $(objectEditor),
+                        _editorParts    = inputElement.next().children(),
+                        valueResult     = getObjectEditorValue(inputElement, _editorParts);
+
+//                        console.log("ARRAY ELEMENT => ", valueResult);
+
+                    result.push(valueResult);
+                });
+                break;
+
+            case 'object':
+
+                let keys = $(editorParts[0]).children().filter(keyFilter);
+
+                result = {};
+
+                keys.each(function(i, key) {
+
+                    let keyString       = $(key).val(),
+                        nextSiblings    = $(key).nextAll(),
+                        inputElement    = $(nextSiblings[1]),
+                        _editorParts    = $(nextSiblings[2]).children(),
+                        valueResult     = getObjectEditorValue(inputElement, _editorParts);
+
+//                        console.log("OBJECT KEY-VALUE-PAIR => " + keyString + ":", valueResult);
+
+                    result[keyString] = valueResult;
+                });
+                break;
+        }
+
+//                console.log('Got', type, ' - ', result);
+        return result;
+    }
+
+    function createResizerMultiLine(element){
+        return function() {
+
+//            console.log("Resizing ", element, element.val());
+
+            let rows = element.val().split(/\n/g) || [],
+                maxCols = 2;
+
+            element.height(rows.length * 20);
+
+            rows.forEach(function (line) {
+                if (line.length > maxCols) maxCols = line.length;
+            })
+
+//            console.log("Resizing width", maxCols, Math.ceil(maxCols * 8.41))
+
+            element.width(Math.ceil(maxCols * 8.41));
+        }
+    }
+
+    function createResizerSingleLine(element) {
+        return function() {
+            let numCols = element.val().length || 2;
+
+//                    console.log("Resizing width", numCols, Math.ceil(numCols * 8.41))
+
+            element.width(Math.ceil(numCols * 8.41));
+        }
+    }
+
+    function getTypeAbbrev(type) {
+        return type ? typeAbbrevs[type] || type : typeAbbrevs.any;
+    }
+
+    function getNamesWidth(items) {
+        let maxChars = 1;
+        $.each(items, function (id, item) {
+            if(item.name.length > maxChars) maxChars = item.name.length;
+        })
+        return Math.ceil(10.0748 * maxChars) + 6;
+    }
+
+    function getClass(element, prefix){
+        let matches = element.attr('class').match(new RegExp(prefix + "-([a-z]+)"));
+        return matches ? matches[1] : "null";
+    }
+
+    function setClass(element, prefix, value) {
+        let rgxp        = new RegExp(prefix + "-([a-z]+)"),
+            classes     = element.attr('class'),
+            newClasses  = rgxp.test(classes) ? classes.replace(rgxp, prefix + '-' + value) : classes + ' ' + prefix + '-' + value;
+
+//                    console.log("newClasses", newClasses);
+
+        element.attr('class', newClasses);
+    }
+
+    function focusPrev(element) {
+        let focusables = $('.focusable');
+        element.addClass("marked");
+        for(let i = 0; i < focusables.length; i++) {
+            if($(focusables[i]).hasClass("marked")) {
+                $(focusables[i]).removeClass("marked");
+                if(focusables[i - 1]) focusables[i - 1].select();
+                break;
+            }
+        }
+
+    }
+
+    function focusNext(element) {
+        let focusables = $('.focusable');
+        element.addClass("marked");
+        for(let i = 0; i < focusables.length; i++) {
+            if($(focusables[i]).hasClass("marked")) {
+                $(focusables[i]).removeClass("marked");
+                if(focusables[i + 1]) focusables[i + 1].select();
+                break;
+            }
+        }
+    }
+
+    RED.nodes.registerType('<%= id %>',{
+        category: 'API',
+        color: '<%= color %>',
+        defaults: {
+            fun: { value: '', required: true },
+            <% _.forEach(functions, function(fun) { %>
+                <%= fun.id %>__logInput: { value: true },
+                <% _.forEach(fun.inputs, function(input) { %>
+                    <%= fun.id %>__input__<%= input.id %>: { value: 'null' },
+                <% }); %>
+            <% }); %>
+
+            // Stringified JSON output configuration; because new errors can be added
+            // but we can't re-generate the HTML if that happens
+            outputArray: { value: '[ "divider" ]', required: true },
+            outputSettings: { value: '{ }', required: true },
+
+            inputs:{ value: 0, required: true },
+            outputs:{ value: 0, required: true },
+        },
+        icon: "file.png",
+        label: function() {
+            return this.fun || "";
+        },
+        oneditprepare: function() {
+
+            // Node-RED runs this once when the node config editor container gets loaded
+            //
+            // The container's height gets set immediately, but the content is asynchronously loaded from the server
+            //
+            // This means the vertical scroll-bar won't appear
+            //
+            // This class will let the height and scroll-bar automatically adjust with dynamic content
+            $(".editor-tray-body").addClass("node-config-editor-container-dynamic-vertical-scroll");
+
+            let selectedFunction,
+                functionConfig,
+                REDConfig  = this;
+
+            console.log("REDConfig", REDConfig)
+
+    //     _______  __    __  .__   __.   ______ .___________. __    ______   .__   __.         _______. _______  __       _______   ______ .___________. _______  _______
+    //    |   ____||  |  |  | |  \ |  |  /      ||           ||  |  /  __  \  |  \ |  |        /       ||   ____||  |     |   ____| /      ||           ||   ____||       \
+    //    |  |__   |  |  |  | |   \|  | |  ,----'`---|  |----`|  | |  |  |  | |   \|  |       |   (----`|  |__   |  |     |  |__   |  ,----'`---|  |----`|  |__   |  .--.  |
+    //    |   __|  |  |  |  | |  . `  | |  |         |  |     |  | |  |  |  | |  . `  |        \   \    |   __|  |  |     |   __|  |  |         |  |     |   __|  |  |  |  |
+    //    |  |     |  `--'  | |  |\   | |  `----.    |  |     |  | |  `--'  | |  |\   |    .----)   |   |  |____ |  `----.|  |____ |  `----.    |  |     |  |____ |  '--'  |
+    //    |__|      \______/  |__| \__|  \______|    |__|     |__|  \______/  |__| \__|    |_______/    |_______||_______||_______| \______|    |__|     |_______||_______/
+    //
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+            $("#node-input-fun").on("change", onFunctionChange);
+
+            function onFunctionChange() {
+
+                selectedFunction    = $("#node-input-fun").val();
+                functionConfig      = <%= id %>_libraryConfig[selectedFunction];
+
+                console.log("Selected", selectedFunction, "Config", functionConfig);
+
+                if(selectedFunction) {
+
+                    REDConfig.inputs = functionConfig.inputCount;
+
+                    // Show the config GUI, hide the prompt, remove existing GUI function configs
+                    $("#function-config").css("display","block");
+                    $("#function-config-prompt").css("display","none");
+                    $(".function-signature").remove();
+
+                    renderInputs();
+                    getLibraryConfig(renderOutputsAndErrors);
+                }
+                else {
+                    $("#function-config").css("display","none");
+                    $("#function-config-prompt").css("display","block");
+                }
+            }
+
+            function getLibraryConfig(cb) {
+                console.log("Getting <%= id %>_libraryConfigEndpoint: ", <%= id %>_libraryConfigEndpoint);
+                $.get(<%= id %>_libraryConfigEndpoint, function(libraryResult) {
+                    <%= id %>_libraryConfig = libraryResult.functions;
+                    functionConfig = <%= id %>_libraryConfig[selectedFunction];
+                    cb();
+                })
+            }
+
+            function renderOutputsAndErrors(){
+                renderOutputs();
+                renderUnroutedErrors();
+                renderErrorValidationRoutes();
+            }
+
+            function renderInputs() {
+
+                // Add 61 for the "[TYP] " label width
+                let maxInputWidth = 61 + getNamesWidth(functionConfig.inputs);
+
+                $.each(functionConfig.inputs, function (input_id, input) {
+
+                    let key = functionConfig.id + '__input__' + input_id;
+
+                    $("#inputs").append(
+                            '<tr class="form-row function-signature">' +
+                                '<td style="width: ' + ( maxInputWidth + 12 ) + 'px;"><label style="cursor: default; white-space:nowrap;" class="config-label" >' +
+                                    getTypeAbbrev(input.schema.type) + ' <b>' + input.name + '</b></label>' +
+                                '</td>' +
+                                '<td>' +
+                                    // JSON String
+                                    '<textarea id="raw-editor-' + key + '" class="auto-resize"/>' +
+                                    '<div id="object-editor-' + key + '"/>' +
+                                    '<div id="node-input-' + key + '" style="display: none;" class="node-text-editor"/>' +
+                                '</td>' +
+                                '<td style="width: 20px;">' +
+                                    '<div id="raw-btn-' + key + '" class="fa raw-btn" style="height: 100%;">' +
+//                                        '<i class="fa fa-exchange" style="vertical-align: middle;">' +
+                                    '</div>' +
+                                '</td>' +
+                            '</tr>'
+                    )
+
+                    let rawEditor       = $('#raw-editor-' + key),
+                        objectEditor    = $('#object-editor-' + key);
+
+                    // Resize raw input editor when modified
+                    rawEditor.on('change keyup paste cut', createResizerMultiLine(rawEditor));
+
+                    raw2objectEditor(REDConfig[key]);
+
+                    $('#raw-btn-' + key).click(function() {
+                        if(rawEditor.is(':hidden'))
+                            objectEditor2raw();
+                        else
+                            raw2objectEditor(rawEditor.val());
+                    });
+
+                    function raw2objectEditor(rawString) {
+                        let anchor  = $('<div id="anchor-' + key + '"></div>'),
+                            val;
+
+                        try
+                        {
+                            if(rawString == undefined) rawString = null;
+
+                            let mjson = mson2mjson(rawString);
+
+                            console.log("CONVERTING", mjson, mjson || null);
+
+                            val = JSON.parse(mjson || null);
+
+                            console.log("COMPLETE", val);
+
+                            rawEditor.hide();
+                            objectEditor.show();
+
+                            objectEditor.empty();
+                            objectEditor.append(anchor)
+
+                            addInput(anchor, input.schema, val);
+                        }
+                        catch(e)
+                        {
+                            alert('Error converting input: could not parse\n' + rawString + '\ninto a Javascript object.\nTry configuring a fresh new node.' + e);
+                        }
+                    }
+
+                    function objectEditor2raw() {
+
+                        let kids = objectEditor.children();
+
+                        let value = getObjectEditorValue(kids[1], $(kids[2]).children());
+
+                        console.log("OBJECT EDITOR VALUE:", key, value);
+
+                        rawEditor.val(mjson2mson(JSON.stringify(value, null, 4)));
+
+                        createResizerMultiLine(rawEditor)();
+
+                        objectEditor.hide();
+                        rawEditor.show();
+                    }
+                });
+
+                // Set input logging checkbox
+                var inputLogCheckboxREDid = 'node-input-' + functionConfig.id + '__logInput';
+                $('#inputs').after(
+                    '<label class="function-signature" style="float:right; margin: 28px 14px 0px; font-variant: small-caps; font-size: 100%;">' +
+                    'Log Inputs?<input style="width: 30px;" type="checkbox" id="'+ inputLogCheckboxREDid + '"></label>'
+                )
+                $('#' + inputLogCheckboxREDid).prop('checked', REDConfig[functionConfig.id + '__logInput']);
+            }
+
+            function renderOutputs() {
+
+                let outputArray             = getOutputArray(),
+                    container               = $("#output-config-container"),
+                    outputSettingsContainer = $('#node-input-outputSettings'),
+                    outputSettings          = JSON.parse(outputSettingsContainer.val()),
+                    functionOutputSettings  = outputSettings[selectedFunction];
+
+                if(!functionOutputSettings) functionOutputSettings = outputSettings[selectedFunction] = { };
+
+                console.log("Output Settings", outputSettings);
+
+                $.each(outputArray, function (index, value) {
+
+                    if(value == "divider")
+                        container.append(
+                                '<li id="divider__route-box" class="output-config function-signature note config-label" style="padding: 20px 0px 12px 8px; cursor:default;">' +
+                                '<black-divider style="padding-right: calc(100% - 405px);">Drag below here to suppress output</black-divider>' +
+                                '</li>'
+                        );
+                    else {
+                        let routeBox = $('<li id="' + value + '__route-box">' +
+                                '<label class="config-label" style="cursor:move; margin:12px; width:200px;"/>' +
+                                '<b><span id="output-route"/> -></b>' +
+                                '<input type="text" id="output-path-' + value + '" style="background-color: rgba(255,255,255,0.4); width: calc(100% - 310px);" />' +
+                                '<span style="float:right; margin:12px 12px 0px 4px;">' +
+                                '<input id="output-log-' + value + '" style="width: 30px;" type="checkbox">' +
+                                '</span>' +
+                                '</li>');
+
+                        container.append(routeBox);
+
+                        let specificSettings    = functionOutputSettings[value],
+                            pathInput           = routeBox.find('#output-path-' + value),
+                            logCheckbox         = routeBox.find('#output-log-' + value);
+
+                        console.log(value + " SETTINGS", specificSettings)
+
+                        if(!specificSettings) {
+
+                            let defaultPath = value == "success" ? functionConfig.output.id : value;
+
+                            specificSettings = functionOutputSettings[value] = {
+                                path: defaultPath,
+                                log: true
+                            }
+                        }
+
+                        if(value == "invalidInput" || value == "catchAll") {
+                            logCheckbox.prop("checked", true);
+                            logCheckbox.attr("disabled", true);
+                        }
+                        else
+                            logCheckbox.prop("checked", specificSettings.log);
+
+                        pathInput.val(specificSettings.path);
+
+//                        pathInput.click(function(){ $(this).select(); })
+
+                        pathInput.blur(function() {
+                            specificSettings.path = $(this).val();
+                            outputSettingsContainer.val(JSON.stringify(outputSettings));
+                        });
+
+                        logCheckbox.click(function() {
+                            specificSettings.log = $(this).is(":checked");
+                            outputSettingsContainer.val(JSON.stringify(outputSettings));
+                        });
+                    }
+                });
+
+                outputSettingsContainer.val(JSON.stringify(outputSettings));
+
+                function updateOutputArray() {
+
+                    let newOutputArray  = [],
+                        routing         = true,
+                        routeCount;
+
+                    $("[id$=__route-box]").each(function (newIndex, element) {
+
+                        let jqThis = $(this),
+                            outputId = element.id.split('__')[0],
+                            outputConfig = {};
+
+                        newOutputArray.push(outputId);
+
+                        switch (outputId) {
+                            case "divider":
+                                routeCount = newIndex;
+                                routing = false;
+                                return;
+                            case "success":
+                                outputConfig            = functionConfig.output || { name: 'Finished', schema: { type: 'null'}, description: 'The operation has successfully completed.'};
+                                outputConfig.boxClass   = routing ? (outputConfig.schema.type == 'null' ? "output-success-null" : "output-success") : "output-inactive";
+                                break;
+                            case "invalidInput":
+                                outputConfig.name       = "Invalid Input";
+                                outputConfig.schema     = { type: "string" };
+                                outputConfig.boxClass   = routing ? "output-error" : "output-inactive";
+                                break;
+                            case "catchAll":
+                                outputConfig.name       = "Catch All";
+                                outputConfig.schema     = { type: "string" };
+                                outputConfig.boxClass   = routing ? "output-error" : "output-inactive";
+                                break;
+                            default:
+                                outputConfig            = functionConfig.errorValidationRoutes[outputId];
+                                outputConfig.boxClass   = routing ? "output-error-validation-route" : "output-inactive";
+                                break;
+                        }
+
+                        jqThis.find('.config-label').html(getTypeAbbrev(outputConfig.schema.type) + '<b>' + outputConfig.name + '</b>');
+                        jqThis.find('#output-route').text(routing ? newIndex : "X");
+
+                        jqThis.removeClass();
+                        jqThis.addClass('output-config function-signature ' + outputConfig.boxClass);
+                    });
+
+                    $('#node-input-outputArray').val(JSON.stringify(newOutputArray));
+
+                    REDConfig.outputs = routeCount;
+                }
+
+                container.sortable({
+                    placeholder: {
+                        element: function(currentItem) {
+                            return $('<li class="output-config output-moving"><div class="config-label" style="margin:12px 12px 12px;"><b>Move Here</b></div></li>')[0];
+                        },
+                        update: function(container, p) { }
+                    },
+                    stop: updateOutputArray,
+                    cancel: '.note'
+                });
+
+                // This is to be able to click on text input in sortable list
+                $("input, select, textarea").bind('mousedown.ui-disableSelection selectstart.ui-disableSelection', function(e){
+                    e.stopImmediatePropagation();
+                });
+
+                updateOutputArray();
+            }
+
+            function getOutputArray() {
+
+                let outputArray         = JSON.parse(REDConfig.outputArray),
+                    allLibraryOutputs   = [ "success" ].concat(Object.keys(functionConfig.errorValidationRoutes)).concat([ "invalidInput", "catchAll", "divider" ]);
+
+                let dividerIndex = outputArray.findIndex(function(item) {
+                    return item == "divider";
+                });
+
+                // Add any new library outputs/errors to the outputs
+                $.each(allLibraryOutputs, function (index, value) {
+                    if(!outputArray.includes(value)){
+                        outputArray.splice(dividerIndex, 0, value);
+                        dividerIndex++;
+                    }
+                });
+
+                // Remove any errors that have been removed
+                let i = 0, count = outputArray.length;
+                while(i < count) {
+                    if(!allLibraryOutputs.includes(outputArray[i])) {
+                        outputArray.splice(i, 1);
+                        count--;
+                    }
+                    else i++
+                }
+
+                return outputArray;
+            }
+
+            function getOutputLog() {
+                let outputSettings  = JSON.parse(REDConfig.outputSettings),
+                    outputs = [ "success" ].concat(Object.keys(functionConfig.errorValidationRoutes)).concat([ "invalidInput", "catchAll" ]);
+
+                // Add any new loggable outputs to the settings
+                $.each(outputs, function (index, id) {
+                    if(outputSettings[id] == undefined)
+                        outputSettings[id] = { path: "test", log: true }
+                });
+
+                // Remove log config for any removed errors
+                for(var id in outputSettings) {
+                    if(!outputs.includes(id))
+                        delete outputSettings[id];
+                }
+
+                return outputSettings;
+            }
+
+            function renderUnroutedErrors() {
+                if(functionConfig.unRoutedErrors.length) {
+                    $('#unrouted-errors').append('<p class="function-signature"><br><unrouted-errors-label>Unrouted Errors</unrouted-errors-label></p>');
+
+                    $.each(functionConfig.unRoutedErrors, function (index, unRoutedError) {
+
+                        let errorType = Object.prototype.toString.call(unRoutedError.value);
+
+                        switch(errorType) {
+                            case "[object String]":     errorType = "string";   break;
+                            case "[object Number]":     errorType = "number";   break;
+                            case "[object Boolean]":    errorType = "boolean";  break;
+                            case "[object Date]":       errorType = "date";     break;
+                            case "[object Object]":     errorType = "object";   break;
+                            case "[object Array]":      errorType = "array";    break;
+                        }
+
+                        let unRoutedErrorContainer          = $('<div class="unrouted-error function-signature"/>'),
+                            unRoutedErrorType               = $('<span class="config-label" style="width: 62px;">' + getTypeAbbrev(errorType) + ' </span>'),
+
+                            unRoutedErrorValueText          = $('<textarea wrap="off" style="resize: none; width: calc(100% - 62px); cursor: text; background-color: rgba(0,0,0,0.1);" readonly/>'),
+                            strVale                         = JSON.stringify(unRoutedError.value, null, 4),
+                            lines                           = strVale.split(/\n/g) || [];
+
+                        unRoutedErrorValueText.val(strVale);
+                        unRoutedErrorValueText.height(lines.length * 20 + 32);
+                        unRoutedErrorValueText.focus(function(e) { this.select(); });
+
+                        unRoutedErrorContainer.append(unRoutedErrorType, unRoutedErrorValueText)
+
+                        $("#unrouted-errors").append(unRoutedErrorContainer)
+                    });
+                }
+            }
+
+            function renderErrorValidationRoutes() {
+
+                $.each(functionConfig.errorValidationRoutes, function (errorId, errorValidationRoute) {
+
+                    let errorValidationRouteContainer   = $('<div class="error-validation-route function-signature"/>'),
+                        errorValidationRouteLabel       = $('<label class="config-label" style="display:inline-block; width:200px; cursor: default;"/>'),
+                        errorValidationRouteSchema      = $('<textarea wrap="off" style="resize: none; width: calc(100% - 248px); cursor: text; background-color: rgba(0,0,0,0.1);" readonly/>'),
+                        schemaText              = JSON.stringify(errorValidationRoute.schema, null, 4),
+                        lines                   = schemaText.split(/\n/g) || [],
+
+                        errorValidationRouteRemoveBtn   = $('<span class="function-signature remove-btn"><b style="margin: 6px 6px 6px 6px;">X</b></span>'),
+                        removeSubmitObject      = {
+                            fun: selectedFunction,
+                            errorName: errorValidationRoute.name
+                        };
+
+                    errorValidationRouteLabel.html(getTypeAbbrev(errorValidationRoute.schema.type) + '<b>' + errorValidationRoute.name + '</b>');
+                    errorValidationRouteSchema.val(schemaText);
+                    errorValidationRouteSchema.height(lines.length * 20 + 32);
+                    errorValidationRouteSchema.focus(function() { this.select(); });
+
+                    errorValidationRouteContainer.append(errorValidationRouteLabel, errorValidationRouteSchema, errorValidationRouteRemoveBtn);
+
+                    $("#error-validation-routes").append(errorValidationRouteContainer);
+
+                    errorValidationRouteRemoveBtn.click(function() {
+                        let r = confirm("Are you sure you want to REMOVE the following error validation?\n\n" +
+                                errorValidationRoute.name + "\n\n" +
+                                schemaText + "\n\n" +
+                                "This can not be undone.\n\nIf you ever do accidentally delete an error validation, it should still be in logs and in source control.");
+
+                        if (r == true) {
+                            $.ajax({
+                                url : <%= id %>_errorValidationRoutesEndpoint,
+                                type: 'DELETE',
+                                contentType: 'application/json',
+                                data : JSON.stringify(removeSubmitObject),
+                                success: function(data) {
+                                    console.log("data", data);
+
+                                    <%= id %>_libraryConfig = data.functions;
+                                    functionConfig = <%= id %>_libraryConfig[selectedFunction];
+
+                                    console.log("<%= id %>_libraryConfig", <%= id %>_libraryConfig)
+
+                                    console.log("functionConfig", functionConfig);
+
+                                    $(".function-signature").remove();
+                                    renderInputs();
+                                    renderOutputsAndErrors();
+                                },
+                                error: function (jqXHR, textStatus, errorThrown)
+                                {
+                                    console.log("Error deleting error!", jqXHR, textStatus, errorThrown)
+                                }
+                            });
+                        }
+                        else {
+                            console.log("You cancelled deleting the error");
+                        }
+
+                    })
+
+
+
+                });
+
+                let errorValidationRouteButton = $('<div class="function-signature add-btn" style="float: right;">+ Add Error Validation Route</div>');
+
+                $("#error-validation-routes-button-region").append(errorValidationRouteButton);
+
+                let table                               = $('<table class="function-signature new-error-validation-route" style="width:100%">'),
+                    tableBody                           = $('<tbody>'),
+                    newErrorValidationRouteContainer    = $('<tr/>'),
+                    newErrorValidationRouteLabel        = $('<td style="width:200px;"><input type="text" id="new-error-validation-route-name" placeholder="Give the error a name"/></td>'),
+                    editors                             = $('<td>'),
+                    newErrorValidationRouteRawEditor    = $('<textarea class="auto-resize" style="cursor: text; background-color: rgba(255,255,255,0.4);"/></td>'),
+                    newErrorValidationRouteObjectEditor = $('<div/>'),
+                    changeEditorsButton                 = $('<td style="width: 20px;"><div class="fa raw-btn" style="height: 100%;"/></td>'),
+
+                    newErrorValidationRouteRemoveBtn   = $('<td style="width: 20px; height: 24px;" class="remove-btn"><b style="margin: 6px 6px 6px 6px;">X</b></td>');
+
+                errorValidationRouteButton.click(function() {
+
+                    if(errorValidationRouteButton.hasClass( "add-btn" )) {
+
+                        // Resize raw input editor when modified
+                        newErrorValidationRouteRawEditor.on('change keyup paste cut', createResizerMultiLine(newErrorValidationRouteRawEditor));
+
+                        // Some kind of race condition here. I think at one point I kind of understood why this is needed
+                        // TODO: make the code figure out the tightest validation of the first unrouted error - default to that
+                        setTimeout(function(){ raw2objectEditor(JSON.stringify({ type: 'object', properties: {} }, null, 4)); }, 10);
+
+                        changeEditorsButton.click(function() {
+                            if(newErrorValidationRouteRawEditor.is(':hidden'))
+                                objectEditor2raw();
+                            else
+                                raw2objectEditor(newErrorValidationRouteRawEditor.val());
+                        });
+
+                        function raw2objectEditor(rawString) {
+                            let anchor  = $('<div id="anchor-new-error-validation-route"></div>'),
+                                val;
+                            try
+                            {
+                                let mjson = mson2mjson(rawString);
+
+                                val = JSON.parse(mjson || null);
+
+                                newErrorValidationRouteRawEditor.hide();
+                                newErrorValidationRouteObjectEditor.show();
+
+                                newErrorValidationRouteObjectEditor.empty();
+                                newErrorValidationRouteObjectEditor.append(anchor)
+
+                                addInput(anchor, null, val);
+                            }
+                            catch(e)
+                            {
+                                alert('Error converting new Error Validation Route: could not parse\n' + rawString + '\ninto a Javascript object.\n' + e);
+                            }
+                        }
+
+                        function objectEditor2raw() {
+
+                            let kids = newErrorValidationRouteObjectEditor.children();
+
+                            let value = getObjectEditorValue(kids[1], $(kids[2]).children());
+
+                            newErrorValidationRouteRawEditor.val(mjson2mson(JSON.stringify(value, null, 4)));
+
+                            createResizerMultiLine(newErrorValidationRouteRawEditor)();
+
+                            newErrorValidationRouteObjectEditor.hide();
+                            newErrorValidationRouteRawEditor.show();
+                        }
+
+                        editors.append(newErrorValidationRouteRawEditor, newErrorValidationRouteObjectEditor);
+                        newErrorValidationRouteContainer.append(newErrorValidationRouteLabel, editors, changeEditorsButton, newErrorValidationRouteRemoveBtn);
+                        tableBody.append(newErrorValidationRouteContainer);
+                        table.append(tableBody);
+
+
+                        $("#error-validation-routes").prepend(table);
+
+                        newErrorValidationRouteRemoveBtn.click(function() {
+
+                            console.log("table", table);
+
+                            table.remove();
+
+                            errorValidationRouteButton.removeClass("save-btn");
+                            errorValidationRouteButton.addClass("add-btn");
+                            errorValidationRouteButton.text("+ Add Error Validation Route");
+                        })
+
+                        errorValidationRouteButton.removeClass("add-btn");
+                        errorValidationRouteButton.addClass("save-btn");
+                        errorValidationRouteButton.text("Save Error Validation Route");
+                    }
+                    else if(errorValidationRouteButton.hasClass( "save-btn" )) {
+
+                        let newErrorValidationRouteName = $("#new-error-validation-route-name").val(),
+                                submitObject    = {
+                                    fun: selectedFunction,
+                                    error: {
+                                        name: newErrorValidationRouteName
+                                    }
+                                };
+
+                        if(!newErrorValidationRouteName)
+                            alert('You forgot to name the error');
+                        else {
+                            if(newErrorValidationRouteRawEditor.is(':hidden')) {
+                                console.log("Get Object Editor Value", newErrorValidationRouteObjectEditor)
+                                let kids = newErrorValidationRouteObjectEditor.children();
+                                submitObject.error.schema = getObjectEditorValue(kids[1], $(kids[2]).children());
+                                console.log("submitting object editor error",  submitObject.error.schema);
+                            }
+                            else {
+                                console.log("Get Raw Editor Value", newErrorValidationRouteRawEditor.val());
+                                try {
+                                    submitObject.error.schema = JSON.parse(mson2mjson(newErrorValidationRouteRawEditor.val() || '') || null);
+                                    console.log("submitting raw error", submitObject.error.schema);
+                                }
+                                catch(e) {
+                                    alert('Error converting existing Error Validation Route: could not parse\n' + newErrorValidationRouteRawEditor.val() + '\ninto a Javascript object.\n' + e);
+                                }
+                            }
+
+                            let r = confirm("Are you sure you want to ADD the following error validation?\n\n" +
+                                    newErrorValidationRouteName + "\n\n" +
+                                    JSON.stringify(submitObject.error.schema, null, 4) + "\n\n" +
+                                    "The more specific your validation is the better\n\nToo general of a validation can let unknown errors slip through the cracks.");
+
+                            if (r == true) {
+
+                                console.log('POST <%= id %>_errorValidationRoutesEndpoint "' + newErrorValidationRouteName + '" to: ', <%= id %>_errorValidationRoutesEndpoint);
+
+                                $.ajax({
+                                    url : <%= id %>_errorValidationRoutesEndpoint,
+                                    type: 'POST',
+                                    contentType: 'application/json',
+                                    data : JSON.stringify(submitObject),
+                                    success: function(data)
+                                    {
+                                        console.log("data", data);
+
+
+                                        <%= id %>_libraryConfig = data.functions;
+                                        functionConfig = <%= id %>_libraryConfig[selectedFunction];
+
+                                        console.log("<%= id %>_libraryConfig", <%= id %>_libraryConfig)
+
+                                        console.log("functionConfig", functionConfig);
+
+                                        $(".function-signature").remove();
+                                        renderInputs();
+                                        renderOutputsAndErrors();
+
+                                        errorValidationRouteButton.removeClass("save-btn");
+                                        errorValidationRouteButton.addClass("add-btn");
+                                        errorValidationRouteButton.text("+ Add Error Validation Route");
+                                    },
+                                    error: function (jqXHR, textStatus, errorThrown)
+                                    {
+                                        console.log("Error adding error!", jqXHR, textStatus, errorThrown)
+                                    }
+                                });
+                            }
+                            else {
+                                console.log("You cancelled adding the new error");
+                            }
+                        }
+
+                    }
+                    else console.log("THERE WAS A FIREFIGHT!!!", this)
+
+                });
+
+
+            }
+
+
+            //    ╔═╗┌┐  ┬┌─┐┌─┐┌┬┐  ╔═╗┌┬┐┬┌┬┐┌─┐┬─┐
+            //    ║ ║├┴┐ │├┤ │   │   ║╣  │││ │ │ │├┬┘
+            //    ╚═╝└─┘└┘└─┘└─┘ ┴   ╚═╝─┴┘┴ ┴ └─┘┴└─
+            //
+            /////////////////////////////////////////////////////
+
+            function addInput(anchor, validationObject, initialObject) {
+
+                let inputElement     = $('<input type="text" class="focusable type-empty auto-resize" style="height: 30px; padding: 3px; resize: none;" />'),
+                    editorElement   = $('<span class="editor">'),
+                    insideOf        = anchor.closest('.type-array, .type-object'),
+                    isArrayElement  = insideOf.hasClass('type-array'),
+                    isObjectValue   = insideOf.hasClass('type-object');
+
+                console.log("isArrayElement", isArrayElement, "isObjectValue", isObjectValue, "insideOf", insideOf);
+
+                anchor.after(inputElement, editorElement);
+
+//                if(isArrayElement) inputElement.focus()
+
+                function addNext(){
+                    if(isArrayElement){
+                        let newInput = addInput(editorElement);
+                        newInput.typeElement.focus();
+                    }
+                    else if(isObjectValue) {
+                        addKeyValuePair(editorElement);
+                    }
+                    fixCommas(inputElement);
+                }
+
+                function validate(){
+
+                    let typeClass = getClass(inputElement, "type");
+
+                    let validClass;
+
+                    if(validationObject && validationObject.type) {
+
+                        if(typeClass == validationObject.type || validationObject.type == 'any' || typeClass == "template") {
+                            validClass = "true";
+                            console.log("Validation: Input " + typeClass + " is correct type");
+                        }
+                        else {
+                            validClass = "false";
+                            console.log("Validation: Input " + typeClass + " is NOT correct type (" + validationObject.type + ")");
+                        }
+                    }
+                    else {
+                        validClass = "null"
+                        console.log("Validation: Input " + typeClass + " can be anything");
+                    }
+
+                    setClass(inputElement, "valid", validClass);
+
+                    // TODO: modify editors below, based on type
+
+                }
+
+                console.log("initial value", Object.prototype.toString.call(initialObject), initialObject)
+
+                switch(Object.prototype.toString.call(initialObject)) {
+                    case "[object Object]":
+
+                        let keys = Object.keys(initialObject);
+
+                        if (keys.length == 1 && keys[0] == objectTemplateKey) {
+                            inputElement.val('<');
+                            handleNewValue();
+                        }
+                        else {
+                            inputElement.val("{");
+
+                            setClass(inputElement, "type", "object");
+
+                            addList(editorElement, 'object', '}', addNext, initialObject);
+
+                            validate();
+
+                            createResizerSingleLine(inputElement)();
+                        }
+
+                        break;
+                    case "[object Array]":
+
+                        inputElement.val("[");
+
+                        setClass(inputElement, "type", "array");
+
+                        addList(editorElement, 'array', ']', addNext, initialObject);
+
+                        validate();
+
+                        createResizerSingleLine(inputElement)();
+
+                        break;
+                    case "[object String]":
+                    case "[object Null]":
+                    case "[object Number]":
+                    case "[object Boolean]":
+                        inputElement.val(initialObject);
+                        handleNewValue();
+                        break;
+
+                    case "[object Undefined]":
+                        break;
+                    default:
+                        alert("Error initializing object editor: " + Object.prototype.toString.call(initialObject) + " is not currently supported.");
+                        break;
+                }
+
+                initialObject = undefined;
+
+                inputElement.keydown(function(e){
+
+                    switch (e.which) {
+                        // Enter
+                        // Add new value, or key value pair
+                        case 13:
+
+                            let inputType = getInputType(inputElement);
+
+                            console.log("inputElement", inputElement)
+
+                            switch (inputType) {
+                                case 'empty':
+                                case 'null':
+                                    inputElement.val('null');
+                                    setClass(inputElement, 'type', 'null');
+                                    createResizerSingleLine(inputElement)();
+                                    break;
+                                case 'boolean':
+                                    if("TRUE".startsWith(inputElement.val().toUpperCase()))
+                                        inputElement.val("true")
+                                    else
+                                        inputElement.val("false");
+                                    createResizerSingleLine(inputElement)();
+                                    break;
+                                case 'number':
+                                    if (inputElement.val() == '-') {
+                                        inputElement.val('"');
+                                        setClass(inputElement, 'type', 'string');
+                                        addString(editorElement, 'string', '"', '-', 'green', addNext);
+                                        return false;
+                                    }
+                                    break;
+                                case 'string':
+                                case 'template':
+                                    focusNext(inputElement);
+                                    return false;
+                                case 'array':
+                                    addInput($(editorElement.find(".top")[0]));
+                                    fixCommas(editorElement.find(".top"));
+                                    return false;
+                                case 'object':
+                                    addKeyValuePair($(editorElement.find(".top")[0]));
+                                    fixCommas(editorElement.find(".top"));
+                                    return false;
+                            }
+
+                            addNext();
+                            return false;
+
+                        case 37:
+                        case 38:
+                            createResizerSingleLine(inputElement)();
+                            focusPrev(inputElement);
+                            return false;
+
+                        case 39:
+                        case 40:
+                            createResizerSingleLine(inputElement)();
+                            focusNext(inputElement);
+                            return false;
+
+                        // Delete
+                        // If empty array element, delete it
+                        // If empty value in key value pair, go to the key editor
+                        case 8:
+                            if (!inputElement.val())
+                                if(isArrayElement)
+                                    return removeInput(editorElement, inputElement);
+                                else if(isObjectValue) {
+                                    focusPrev(inputElement);
+                                    return false;
+                                }
+                    }
+                })
+
+                function handleNewValue(){
+
+                        let inputType = getInputType(inputElement),
+                            initialString,
+                            setString,
+                            stringInput,
+                            tmpStr;
+
+                        console.log("Object Editor Changed (" + inputType + ")", inputElement.val());
+
+                        if (inputType != getClass(inputElement, "type")) {
+
+                            setClass(inputElement, "type", inputType);
+                            editorElement.empty();
+
+                            console.log("Changed class to ", inputType);
+
+                            switch (inputType) {
+                                case 'array':
+                                    addList(editorElement, 'array', ']', addNext);
+                                    if(!initialObject) {
+                                        focusNext(inputElement);
+                                    }
+                                    break;
+                                case 'object':
+                                    addList(editorElement, 'object', '}', addNext);
+                                    if(!initialObject)
+                                        focusNext(inputElement);
+                                    break;
+                                case 'string':
+                                    initialString   = inputElement.val();
+                                    setString       = (initialString == '"' || initialString == "'") ? "" : initialString;
+                                    stringInput     = addString(editorElement, 'string', '"', 'green', setString, addNext);
+
+                                    inputElement.val("\"");
+
+                                    if(!initialObject) {
+                                        console.log("focusing on string", stringInput)
+                                        stringInput.focus();
+                                        if(setString) {
+                                            tmpStr = stringInput.val();
+                                            stringInput.val('');
+                                            stringInput.val(tmpStr);
+                                        }
+                                    }
+                                    break;
+                                case 'template':
+                                    initialString   = inputElement.val();
+
+                                        console.log("Initial template", initialString)
+
+                                    setString       = initialObject ? initialObject[objectTemplateKey] : "";
+                                    stringInput     = addString(editorElement, 'template', '>', 'darkorange', setString, addNext);
+
+                                    inputElement.val("<");
+
+                                    if(!initialObject) {
+                                        console.log("focusing on template", stringInput)
+                                        stringInput.focus();
+                                    }
+                                    break;
+                            }
+                            validate();
+                        }
+
+                        if(inputType == 'number')
+                            inputElement.val(parseInt(inputElement.val(), 10));
+
+                        createResizerSingleLine(inputElement)();
+                }
+
+                // These we want after the input has already changed
+                inputElement.keyup(handleNewValue);
+
+                return {
+                    typeElement: inputElement,
+                    editorElement: editorElement
+                }
+            }
+
+            function getInputType(element) {
+
+                let value = element.val(),
+                    numReg = /^-$|^-?\d+\.?\d*$/;
+
+                if(value == "")                                                     return 'empty';
+                if(value == "[")                                                    return 'array';
+                if(value == "{")                                                    return 'object';
+                if(value == "<")                                                    return 'template';
+                if(numReg.test(value))                                              return 'number';
+                let uppercase = value.toUpperCase();
+                if( "NULL".startsWith(uppercase))                                   return 'null';
+                if( "TRUE".startsWith(uppercase) || "FALSE".startsWith(uppercase))  return 'boolean';
+                return 'string';
+            }
+
+            function removeInput(editorElement, typeElement) {
+
+                editorElement.remove();
+
+                focusPrev(typeElement);
+
+                fixCommas(typeElement)
+
+                typeElement.remove();
+
+                return false;
+            }
+
+            function fixCommas(anchor) {
+                let editors = anchor.parent().children("span.editor"),
+                    commas  = anchor.siblings("span.comma"),
+                    comma   = '<span class="comma" style="font-size: 18px;">,<br></span>';
+
+                commas.remove();
+
+                for(let i = 0; i < editors.length - 1; i++)
+                    $(editors[i]).after(comma)
+            }
+
+            // todo: refactor this to show templates
+            function addString(anchor, type, closerChar, color, initialValue, addNext) {
+
+                console.log("Adding", type, initialValue)
+
+                let input  = $('<textarea class="auto-resize focusable" style="background-color: rgba(255,255,255,0); padding: 0px; color: ' + color + '; border: none; resize: none;">' + initialValue + '</textarea>'),
+                    closer = $('<input class="type-' + type + '" tabIndex="-1" />');
+
+                closer.val(closerChar);
+
+                closer.on('keydown', function(e) {
+                    switch (e.which) {
+                        case 13:
+                            addNext();
+                            break;
+
+                        case 37:
+                        case 38:
+                            input.focus();
+                            break;
+
+                        case 39:
+                        case 40:
+                            focusNext(input);
+                            break;
+                    }
+                    return false;
+                });
+
+                let resizer = createResizerMultiLine(input);
+
+                resizer();
+
+                input.on('change keyup paste cut', resizer);
+
+                input.on('keydown', function(e) {
+
+                    // TODO: try adjusting width here, to avoid lag
+                    resizer();
+
+                    if(!(e.shiftKey || e.ctrlKey || e.altKey || e.metaKey)) {
+                        switch (e.which) {
+
+                            // If user presses enter (but not shift-enter)
+                            // Add the next thing
+                            case 13:
+                                addNext();
+                                return false;
+
+                                // Delete
+                            case 8:
+                                // This if statement is if I don't want to accidentally delete the whole string by deleting to the front
+                                if (!input.val()) {
+                                    focusPrev(input);
+                                    return false;
+                                }
+                                break;
+
+                            case 37:
+                            case 38:
+                                if(!input.prop("selectionStart")) {
+                                    focusPrev(input);
+                                    return false;
+                                }
+                                break;
+
+                            case 39:
+                            case 40:
+                                console.log("selectionEnd", input.prop("selectionEnd") );
+                                console.log("length", input.val().length);
+
+                                if(input.prop("selectionEnd") == input.val().length) {
+                                    focusNext(input);
+                                    return false;
+                                }
+                                break;
+                        }
+                    }
+                });
+
+                anchor.append(input, closer);
+
+                return input;
+            }
+
+            function addList(anchor, type, closerChar, addListSibling, initialList, validationObject) {
+
+                let list   = $('<div class="indent">'),
+                    top    = $('<span class="top">'),
+                    bottom = $('<span class="bottom">'),
+                    closer = $('<input>'),
+                    allChildrenValidationObject = validationObject && validationObject.items,
+                    childValidationObject;
+
+                setClass(list,      "type", type);
+                setClass(closer,    "type", type);
+
+                closer.val(closerChar);
+
+                closer.on('keydown', function(e) {
+
+                    switch (e.which) {
+                        // Enter
+                        // Add new value, or key value pair
+                        case 13:    addListSibling();  return false;
+
+                        // Shift, Tab
+                        // Allow navigation
+                        case 16:
+                        case 9:                 return true;
+
+                        // All other keys
+                        // Don't let the user edit
+                        default:                return false;
+                    }
+                });
+
+                anchor.append(list);
+
+                list.append(top, bottom);
+
+                list.after(closer);
+
+                if(initialList) {
+                    $.each(initialList, function(index, value) {
+                        console.log(index, value);
+
+                        switch (type) {
+                            case 'array':
+
+                                allChildrenValidationObject = validationObject && validationObject.items;
+
+                                switch(Object.prototype.toString.call(allChildrenValidationObject)) {
+                                    case "[object Object]": childValidationObject = allChildrenValidationObject;        break;
+                                    case "[object Array]":  childValidationObject = allChildrenValidationObject[index]; break;
+                                }
+
+                                addInput(bottom.prev(), childValidationObject, value);
+
+                                break;
+                            case 'object':
+
+                                allChildrenValidationObject = validationObject && validationObject.properties;
+
+                                switch(Object.prototype.toString.call(allChildrenValidationObject)) {
+                                    case "[object Object]": childValidationObject = allChildrenValidationObject[index]; break;
+                                }
+
+                                addKeyValuePair(bottom.prev(), index, value, childValidationObject);
+
+                                break;
+                        }
+
+                        fixCommas(top);
+                    });
+                }
+                else {
+                    switch (type) {
+                        case 'array':
+                            addInput(top);
+                            break;
+                        case 'object':
+                            addKeyValuePair(top);
+                            break;
+                    }
+                }
+            }
+
+            function addKeyValuePair(anchor, initialKey, initialValue, validationObject) {
+
+                console.log("adding key value pair");
+
+                let keyElement      =  $('<textarea class="auto-resize focusable is-key" style="background-color: rgba(255,255,255,0); border: none; resize: none;"/>'),
+                    colonElement    = $('<span style="font-size: 18px;">: </span>'),
+                    resizer         = createResizerMultiLine(keyElement);
+
+
+                keyElement.on('change keyup paste cut', resizer);
+
+                anchor.after(keyElement, colonElement);
+
+
+                let typeInput = addInput(colonElement, validationObject, initialValue);
+
+                if(initialValue !== undefined) {
+                    keyElement.val(initialKey);
+                }
+                else {
+                    keyElement.focus();
+                }
+
+                resizer();
+
+                // If delete key was pressed, the value is empty, and it's not the original
+                keyElement.keydown(function(e){
+
+                    if (e.keyCode == 13) {
+                        typeInput.typeElement.focus();
+                        return false;
+                    }
+                    if(e.keyCode == 8 && !keyElement.val()) {
+
+                        console.log("removing from object", anchor);
+
+                        focusPrev(keyElement);
+
+                        keyElement.remove();
+                        colonElement.remove();
+
+                        removeInput(typeInput.editorElement, typeInput.typeElement);
+
+                        return false;
+
+                    }
+                })
+            }
+
+        },
+
+        oneditsave: function() {
+
+            let REDConfig  = this;
+
+            console.log("REDConfig Before", REDConfig);
+
+            $.each(<%= id %>_libraryConfig, function (functionName, functionConfig) {
+                console.log("Submitting Function", functionName, functionConfig);
+
+                $.each(functionConfig.inputs, function (input_id, input) {
+
+                    let key             = functionConfig.id + '__input__' + input_id,
+                        rawEditor       = $('#raw-editor-' + key),
+                        objectEditor    = $('#object-editor-' + key),
+                        nodeInput       = $("#node-input-" + key);
+
+                    if(rawEditor.is(':hidden')) {
+                        console.log("Get Object Editor Value", objectEditor)
+
+                        let kids = objectEditor.children();
+
+                        let value = getObjectEditorValue(kids[1], $(kids[2]).children());
+
+                        console.log("submitting input OE ", key, JSON.stringify(value));
+
+                        nodeInput.val(JSON.stringify(value))
+                    }
+                    else {
+                        console.log("Get Raw Editor Value", rawEditor.val());
+
+                        try {
+
+                            let rawResult = JSON.stringify(JSON.parse(mson2mjson(rawEditor.val() || '') || null));
+
+                            console.log("submitting input raw", key, rawResult);
+
+                            nodeInput.val(rawResult);
+                        }
+                        catch(e)
+                        {
+                            alert('Error converting inputs while saving: Could not parse\n' + rawEditor.val() + '\ninto a Javascript object.\n' + e);
+                        }
+                    }
+                });
+            });
+            console.log("REDConfig After", REDConfig);
+        },
+    });
+
+</script>
+
+<matt-script type="text/x-red" data-help-name="<%= id %>">
+    <p></p>
+</matt-script>
+

@@ -1,0 +1,68 @@
+data:
+  image: busybox:latest
+  volumes:
+    - /var/lib/rabbitmq
+    - /data
+    - /elasticsearch/data
+    - /usr/src/app/data
+rabbitmq:
+  image: rabbitmq:management
+  hostname: rabbitmq-dev
+  expose:
+    - "5672"
+  ports:
+    - "15672:15672"
+    - "5672:5672"
+  volumes_from:
+    - data
+mongo:
+  image: mongo:latest
+  hostname: mongo-dev
+  ports:
+    - "27017:27017"
+  volumes_from:
+    - data
+  command: mongod
+redis:
+  image: redis:latest
+  hostname: redis-dev
+  ports:
+    - "6379:6379"
+  volumes_from:
+    - data
+  command: redis-server --appendonly yes
+# elasticsearch:
+  # image: docker.elastic.co/elasticsearch/elasticsearch:7.6.1
+  # command: elasticsearch -Des.network.host=0.0.0.0
+  # volumes_from:
+      # - data
+  # ports:
+    # - "9200:9200"
+# logstash:
+  # image: docker.elastic.co/logstash/logstash:7.12.0
+  # hostname: logstash
+  # command: logstash -f /etc/logstash/conf.d/logstash.conf
+  # volumes:
+    # - ./logstash/config:/etc/logstash/conf.d
+  # ports:
+    # - "5000:5000"
+  # expose:
+    # - "5000"
+  # links:
+    # - elasticsearch
+# kibana:
+  # image: docker.elastic.co/kibana/kibana:7.12.0
+  # volumes:
+    # - ./kibana/config/kibana.yml:/opt/kibana/config/kibana.yml
+  # ports:
+    # - "5601:5601"
+  # links:
+    # - elasticsearch
+
+#ruby:
+#  build: ruby/
+#  ports:
+#    - "4567:4567"
+#  links:
+#    - logstash
+#    - mongo

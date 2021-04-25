@@ -1,0 +1,34 @@
+
+<script type="text/x-red" data-template-name="tool_split">
+    <div class="form-row">
+         <label for="node-input-path"><i class="fa fa-file"></i> Path</label>
+         <input type="text" id="node-input-path" placeholder="payload">
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="tool_split">
+    <p>Splits the given path of a message, to be joined again by a join node.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('tool_split',{
+        category: 'tool',
+        color: '#ffff00',
+        defaults: {
+            path: { value: 'payload', required: true }
+        },
+        inputs:1,
+        outputs:1,
+        icon: "split.png",
+        label: function() {
+            return "Split " + this.path;
+        }
+    });
+</script>
+
+
+
+
+
+
